@@ -2,7 +2,7 @@
   "name": "curse-modpack-downloader",
   "version": "0.1.0",
   "description": "A package that will download minecraft modpack from curseforge",
-  "main": "index.js",
+  "main": "cli.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -16,6 +16,10 @@
     "request": "^2.88.0",
     "request-progress": "^3.0.0",
     "request-promise-native": "^1.0.7"
+  },
+  "repository": {
+      "type": "git",
+      "url": "https://github.com/ScuroGuardiano/curse-modpack-downloader"
   },
   "bin": {
     "cmpdl": "./cli.js"
