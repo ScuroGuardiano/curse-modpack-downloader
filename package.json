@@ -18,6 +18,6 @@
     "request-promise-native": "^1.0.7"
   },
   "bin": {
-    "cfmpd": "./cli.js"
+    "cmpdl": "./cli.js"
   }
 }

@@ -10,19 +10,19 @@ const requestPromise = require('request-promise-native');
 
 const BASE_URL = "https://minecraft.curseforge.com";
 
-function createDownloadFolder() {
+function createModpacksFolder() {
     try {
-        fs.mkdirSync("./download");
+        fs.mkdirSync("./modpacks");
     } catch (err) {
         if (err.code != "EEXIST") {
-            console.error("ERROR: Can't create download folder! Make sure that program has access to current folder.");
+            console.error("ERROR: Can't create modpacks folder! Make sure that program has access to current folder.");
             process.exit(1);
         }
     }
 }
 function createProjectFolder(projectName) {
     try {
-        fs.mkdirSync('./download/' + projectName);
+        fs.mkdirSync('./modpacks/' + projectName);
     } catch(err) {
         if(err.code == "EEXIST") {
             console.error(`ERROR: There's already folder for a project ${projectName}. To download it again, delete this folder.`);
@@ -107,10 +107,10 @@ async function main(argv) {
     }
     const project = argv[2];
     const latest = await getLatestProjectFileUrl(project);
-    createDownloadFolder();
+    createModpacksFolder();
     const projectFolderName = removeIllegalCharactersFromFilename(project + ' ' + latest.version);
     createProjectFolder(projectFolderName);
-    const projectFolderPath = path.resolve(`./download/${projectFolderName}`);
+    const projectFolderPath = path.resolve(`./modpacks/${projectFolderName}`);
     const projectArchivePath = `${projectFolderPath}/${project}.zip`
 
     console.log("Downloading project main file v." + latest.version);
