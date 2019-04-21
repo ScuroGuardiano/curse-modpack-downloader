@@ -24,7 +24,7 @@ And wait until it's downloaded
 ## Install node with npm for your operating system from [here](https://nodejs.org/en/)
 And then run this command. Voilà it's installed
 ```bash
-    npm install -g curseforge-modpack-downloader
+    npm install -g curse-modpack-downloader
 ```
 
 ## License

@@ -1,5 +1,5 @@
 {
-  "name": "curseforge-modpack-downloader",
+  "name": "curse-modpack-downloader",
   "version": "0.1.0",
   "description": "A package that will download minecraft modpack from curseforge",
   "main": "index.js",
