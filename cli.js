@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 const downloadFile = require('./download-file');
-const getFileList = require('./get-file-list');
 const fs = require('fs-extra');
 const { promisify } = require('util');
 const extractZip = promisify(require('extract-zip'));
@@ -8,7 +7,7 @@ const path = require('path');
 const { JSDOM } = require('jsdom');
 const requestPromise = require('request-promise-native');
 
-const BASE_URL = "https://minecraft.curseforge.com";
+const BASE_URL = "https://addons-ecs.forgesvc.net/api/v2";
 
 function createModpacksFolder() {
     try {
@@ -20,6 +19,7 @@ function createModpacksFolder() {
         }
     }
 }
+
 function createProjectFolder(projectName) {
     try {
         fs.mkdirSync('./modpacks/' + projectName);
@@ -33,65 +33,117 @@ function createProjectFolder(projectName) {
         process.exit(1);
     }
 }
+
+/**
+ * 
+ * @param {string} projectSlug project slug
+ * @returns { project } project
+ */
+async function getProjectBySlug(projectSlug) {
+    const searchUrl = `${BASE_URL}/addon/search?gameId=432&categoryId=0&searchFilter=${projectSlug}`
+        + `&pageSize=20&index=$index&sort=1&sortDescending=true&sectionId=4471`;
+    let results;
+    let index = 0;
+    while (index == 0 || results.length) {
+        try {
+            let url = searchUrl.replace("$index", index);
+            let searchRes = await requestPromise.get(url);
+            results = JSON.parse(searchRes);
+        } catch (err) {
+            console.error(err);
+            process.exit(1);
+        }
+        let project = results.filter(x => x.slug == projectSlug);
+        if (project.length) return project[0];
+        index += 20;
+    }
+    console.error(`Can't find project ${projectSlug}.`);
+    process.exit(1);
+}
+
+/**
+ * 
+ * @param {string} projectId project ID
+ * @returns { project } project
+ */
+async function getProjectById(projectId) {
+    try {
+        const res = await requestPromise.get(`${BASE_URL}/addon/${projectId}`);
+        return JSON.parse(res);
+    } catch (err) {
+        console.error(err);
+        process.exit(1);
+    }
+}
+
+/**
+ * 
+ * @param {string} projectId project ID
+ * @returns { { id: number, fileName: string, downloadUrl: string }[] } array of files
+ */
+async function getProjectFiles(projectId) {
+    try {
+        const res = await requestPromise.get(`${BASE_URL}/addon/${projectId}/files`);
+        return JSON.parse(res);
+    } catch (err) {
+        console.error(err);
+        process.exit(1);
+    }
+}
+
 /**
  * 
  * @param {string} project project name
- * @returns { { url: string, version: string } }
+ * @returns { { url: string, version: string, fileName: string } }
  */
-async function getLatestProjectFileUrl(project) {
-    const url = `${BASE_URL}/projects/${project}/files`;
-    /**@type {typeof getFileList} */
-    let fileList;
-    try {
-        fileList = await getFileList(url);
-    } catch (err) {
-        switch (err.message) {
-            case "404":
-                console.error(`ERROR: Project ${project} not found.`);
-                break;
-            case "4xx":
-                console.error("4xx Error, dunno")
-                break;
-            case "5xx":
-                console.error("Server side error");
-                break;
-            default:
-                console.error(err);
-        }
-        process.exit(1);
+async function getLatestProjectFileUrl(projectSlug) {
+    const project = await getProjectBySlug(projectSlug);
+    const defaultFile = project.latestFiles.filter(x => x.id == project.defaultFileId)[0];
+    return {
+        url: defaultFile.downloadUrl,
+        version: defaultFile.displayName,
+        fileName: defaultFile.fileName
     }
-
-    const latest = fileList[0];
-    return latest
 }
+
+/**
+ * 
+ * @param {string} projectId project ID
+ * @param {string} fileId file ID
+ * @returns { file } file
+ */
+async function getProjectFile(projectId, fileId) {
+    const project = await getProjectById(projectId);
+    const file = project.latestFiles.filter(x => x.id == fileId);
+    if (file.length) {
+        return file[0];
+    }
+    const projectFiles = await getProjectFiles(projectId);
+    const file2 = projectFiles.filter(x => x.id == fileId);
+    if (file2.length)
+    {
+        return file2[0];
+    }
+    console.error(`File ${fileId} not found in project ${projectId}.`);
+    process.exit(1);
+}
+
 function loadManifest(path) {
     let manifest = fs.readFileSync(path).toString();
     return JSON.parse(manifest);
 }
-async function getModNameByFileUrl(fileUrl) {
-    try {
-        let res = await requestPromise.get(fileUrl);
-        let { document } = (new JSDOM(res)).window;
-        return document.querySelector(".info-data.overflow-tip").textContent;
-    }
-    catch(err) {
-        if(err.statusCode && err.statusCode == 404) {
-            console.error(`File ${fileUrl} not found on remote server. One mod url is invalid, aborting...`);
-            process.exit(1);
-        }
-    }
-}
+
 async function generateFileListFromManifest(manifest) {
     return Promise.all(manifest.files
     .map(async file => {
-        const fileUrl = `${BASE_URL}/projects/${file.projectID}/files/${file.fileID}`;
-        const name = await getModNameByFileUrl(fileUrl);
+        let f = await getProjectFile(file.projectID, file.fileID);
         return {
-            name: name,
-            downloadUrl: fileUrl + "/download"
-        }
+            name: f.fileName,
+            downloadUrl: f.downloadUrl
+        };
     }));
 }
+
 function removeIllegalCharactersFromFilename(filename) {
     return filename.replace(/[/\\?%*:|"<>]/g, '-');
 }
@@ -102,19 +154,20 @@ function removeIllegalCharactersFromFilename(filename) {
  */
 async function main(argv) {
     if(argv.length < 3) {
-        console.error("Usage: cursemd <project name>");
+        console.error("Usage: cmpdl <project name>");
         process.exit(1);
     }
     const project = argv[2];
+    console.log("Searching for project main file");
     const latest = await getLatestProjectFileUrl(project);
     createModpacksFolder();
-    const projectFolderName = removeIllegalCharactersFromFilename(project + ' ' + latest.version);
+    const projectFolderName = removeIllegalCharactersFromFilename(latest.version);
     createProjectFolder(projectFolderName);
     const projectFolderPath = path.resolve(`./modpacks/${projectFolderName}`);
-    const projectArchivePath = `${projectFolderPath}/${project}.zip`
+    const projectArchivePath = `${projectFolderPath}/${latest.fileName}`
 
     console.log("Downloading project main file v." + latest.version);
-    await downloadFile(`${BASE_URL}${latest.url}/download`, projectArchivePath);
+    await downloadFile(latest.url, projectArchivePath);
 
     console.log("Extracting...");
     await extractZip(projectArchivePath, {dir: path.join(projectFolderPath, 'extracted')});
