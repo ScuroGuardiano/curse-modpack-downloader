@@ -71,7 +71,12 @@ async function getProjectById(projectId) {
         const res = await requestPromise.get(`${BASE_URL}/addon/${projectId}`);
         return JSON.parse(res);
     } catch (err) {
-        console.error(err);
+        if (err.statusCode == 404) {
+            console.error(`Can't find project ${projectId}.`);
+        }
+        else {
+            console.error(err);
+        }
         process.exit(1);
     }
 }
@@ -93,11 +98,26 @@ async function getProjectFiles(projectId) {
 
 /**
  * 
- * @param {string} project project name
+ * @param {string} projectSlug project slug
  * @returns { { url: string, version: string, fileName: string } }
  */
 async function getLatestProjectFileUrl(projectSlug) {
     const project = await getProjectBySlug(projectSlug);
+    const defaultFile = project.latestFiles.filter(x => x.id == project.defaultFileId)[0];
+    return {
+        url: defaultFile.downloadUrl,
+        version: defaultFile.displayName,
+        fileName: defaultFile.fileName
+    }
+}
+
+/**
+ * 
+ * @param {string} projectId project ID
+ * @returns { { url: string, version: string, fileName: string } }
+ */
+async function getLatestProjectFileUrlById(projectId) {
+    const project = await getProjectById(projectId);
     const defaultFile = project.latestFiles.filter(x => x.id == project.defaultFileId)[0];
     return {
         url: defaultFile.downloadUrl,
@@ -154,12 +174,18 @@ function removeIllegalCharactersFromFilename(filename) {
  */
 async function main(argv) {
     if(argv.length < 3) {
-        console.error("Usage: cmpdl <project name>");
+        console.error("Usage: cmpdl <project id|project name>");
         process.exit(1);
     }
     const project = argv[2];
-    console.log("Searching for project main file");
-    const latest = await getLatestProjectFileUrl(project);
+    let latest;
+    if (isNaN(parseInt(project, 10))) {
+        console.log("Searching for project main file");
+        latest = await getLatestProjectFileUrl(project);
+    }
+    else {
+        latest = await getLatestProjectFileUrlById(project);
+    }
     createModpacksFolder();
     const projectFolderName = removeIllegalCharactersFromFilename(latest.version);
     createProjectFolder(projectFolderName);
