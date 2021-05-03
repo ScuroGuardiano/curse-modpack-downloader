@@ -8,17 +8,29 @@ Worry no more, because here you got
 > Warning: If you are so afraid of cmd, better go away from here. Here you got something with [GUI written in Java](https://github.com/Vazkii/CMPDL), I don't know how it works, use at your own responsibility. Maybe I will add some GUI to this project later
 
 ## Usage
-First you need project name, you take it from modpack url  
-![](img/1.png)  
-Now just open your terminal/cmd, enter the directory when you want to download modpack and type
+### Using Project ID
+Find the project ID on the modpack's CurseForge page.
+
+![](img/3.png)
+
+Open your terminal/cmd, enter the directory when you want to download modpack and type `cmpdl <project id>`
+
+For example, [Project Ozone Lite (https://www.curseforge.com/minecraft/modpacks/project-ozone-lite)](https://www.curseforge.com/minecraft/modpacks/project-ozone-lite)
 ```bash
-    cmpdl <project name>
+    cmpdl 273726
 ```
-For example
+
+### Using Project Name/Slug
+Or you can try using the project name taken from modpack url, but this method is slower and not always successful. 
+
+![](img/1.png)  
+
+Now just open your terminal/cmd, enter the directory when you want to download modpack and type `cmpdl <project name>`
+
+For example, [Project Ozone Lite (https://www.curseforge.com/minecraft/modpacks/project-ozone-lite)](https://www.curseforge.com/minecraft/modpacks/project-ozone-lite)
 ```bash
     cmpdl project-ozone-light
 ```
-And wait until it's downloaded
 
 # Installation
 ## Install node with npm for your operating system from [here](https://nodejs.org/en/)
