@@ -12,7 +12,7 @@
     "cli-progress": "^2.1.1",
     "extract-zip": "^1.6.7",
     "fs-extra": "^7.0.1",
-    "jsdom": "^14.1.0",
+    "jsdom": "^16.5.0",
     "request": "^2.88.0",
     "request-progress": "^3.0.0",
     "request-promise-native": "^1.0.7"
